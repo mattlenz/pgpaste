@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+<head>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    textarea {
+      width: 100%;
+    }
+  </style>
+  <script crossorigin="anonymous" integrity="sha384-/N1ZJTH7aZFvzCM9Jy9dQmQzroYQpB5L2qrNPgYpg1/tbwVDvaqWwGHfHeFhSpcn" src="./openpgp.min.js"></script>
+  <script>
+    function ready() {
+      const $form = document.querySelector('#form')
+      const $result = document.querySelector('#result')
+      const $resultContainer = document.querySelector('#result_container')
+      const $copyButton = document.querySelector('#copy')
+
+      $form.addEventListener('submit', async event => {
+        event.preventDefault()
+
+        const key = document.querySelector('#public').value
+        const message = document.querySelector('#message').value
+
+        $result.value = ''
+        $resultContainer.style.display = 'none'
+        $copyButton.disabled = false
+        $copyButton.innerText = 'Copy to clipboard'
+
+        const {keys: [publicKey]} = await openpgp.key.readArmored(key)
+
+        if(publicKey) {
+          const {data: encrypted} = await openpgp.encrypt({
+            message: openpgp.message.fromText(message),
+            publicKeys: [publicKey]
+          })
+
+          $result.value = encrypted
+          $resultContainer.style.display = 'block'
+        } else {
+          alert('Public key provided was not valid')
+        }
+      })
+
+      $copyButton.addEventListener('click', event => {
+        event.preventDefault()
+
+        $result.select()
+        document.execCommand('copy')
+        window.getSelection().removeAllRanges()
+
+        $copyButton.innerText = 'Copied'
+        $copyButton.disabled = true
+      })
+    }
+
+    document.addEventListener('DOMContentLoaded', ready)
+  </script>
+</head>
+<body>
+  <h1>PGP Encrypt</h1>
+  <form id="form">
+    <div>
+      <p>Public key</p>
+      <textarea spellcheck="false" rows="10" id="public"></textarea>
+    </div>
+
+    <div>
+      <p>Message</p>
+      <textarea rows="10" id="message"></textarea>
+    </div>
+
+    <div>
+      <input type="submit" />
+    </div>
+  </form>
+
+  <div id="result_container" style="display: none">
+    <p>Encrypted nessage</p>
+    <textarea spellcheck="false" rows="10" id="result"></textarea>
+    <button id="copy">Copy to clipboard</button>
+  </div>
+</body>
+</html>
